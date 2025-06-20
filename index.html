@@ -451,8 +451,7 @@
             shortUrl = "https://" + data.shortUrl;
           } else {
             throw new Error(data.message || (data.errors && data.errors[0] && data.errors[0].message) || "Failed to shorten with Rebrandly");
-          
-        } else {
+                  } else {
           throw new Error(data.message || (data.errors && data.errors[0] && data.errors[0].message) || "Failed to shorten with Rebrandly");
         }
       } catch (err) {
