@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Power URL Shortener Hub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      background: #f1f5f9;
+      font-family: 'Inter', Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .container {
+      background: #fff;
+      border-radius: 1.5rem;
+      box-shadow: 0 2px 16px #0001;
+      padding: 2rem 2.5rem 2.5rem;
+      max-width: 480px;
+      margin: 2rem auto 1rem;
+      width: 96%;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 1.2rem;
+      font-size: 2rem;
+      color: #0ea5e9;
+      letter-spacing: .5px;
+    }
+    label {
+      display: block;
+      text-align: left;
+      margin-bottom: .3rem;
+      color: #334155;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    input[type="url"], input[type="text"], input[type="password"], select {
+      width: 100%;
+      padding: .7rem 1rem;
+      margin-bottom: 1rem;
+      border-radius: .75rem;
+      border: 1px solid #cbd5e1;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color .2s;
+      box-sizing: border-box;
+    }
+    input:focus, select:focus {
+      border-color: #0ea5e9;
+    }
+    button {
+      background: #0ea5e9;
+      color: #fff;
+      border: none;
+      padding: .7rem 1.7rem;
+      border-radius: .75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 1px 8px #3b82f633;
+      transition: background .2s;
+    }
+    button:active {
+      background: #0369a1;
+    }
+    .result, .history {
+      margin-top: 1.3rem;
+      padding: 1rem;
+      border-radius: 1rem;
+      background: #f8fafc;
+      word-break: break-all;
+      text-align: left;
+    }
+    .copy-btn, .open-btn, .del-btn {
+      margin-left: .4rem;
+      margin-right: .3rem;
+      background: #06d6a0;
+      color: #fff;
+      border: none;
+      border-radius: .5rem;
+      padding: .35rem .9rem;
+      font-size: .92rem;
+      cursor: pointer;
+      transition: background .2s;
+      vertical-align: middle;
+    }
+    .open-btn { background: #3b82f6; }
+    .del-btn  { background: #f87171; }
+    .copy-btn:active { background: #029c6a; }
+    .open-btn:active { background: #2563eb; }
+    .del-btn:active  { background: #b91c1c; }
+    .qr-section {
+      margin-top: 1.1rem;
+      text-align: center;
+    }
+    .error, .status-bar {
+      color: #ef4444;
+      margin-top: 1rem;
+      font-size: 1.08rem;
+      text-align: center;
+    }
+    .status-bar {
+      color: #0ea5e9;
+      margin-bottom: .6rem;
+      font-weight: 600;
+    }
+    .api-token-field, .custom-alias-field {
+      display: none;
+      margin-bottom: 1.2rem;
+    }
+    .history-title {
+      font-size: 1.13rem;
+      color: #64748b;
+      margin-bottom: .3rem;
+      font-weight: 600;
+      text-align: left;
+    }
+    .history-search {
+      width: 98%;
+      padding: .45rem 1rem;
+      margin-bottom: .8rem;
+      border-radius: .5rem;
+      border: 1px solid #cbd5e1;
+      font-size: .97rem;
+      background: #f3f4f6;
+    }
+    .clear-hist-btn {
+      background: #f87171;
+      margin-left: .7rem;
+      margin-right: 0;
+      font-size: .92rem;
+      padding: .28rem .65rem;
+    }
+    .history-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .history-list li {
+      padding: .55rem 0 .7rem 0;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      font-size: 1rem;
+    }
+    .history-list li:last-child { border-bottom: none; }
+    .history-link {
+      color: #2563eb;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .history-date {
+      color: #64748b;
+      font-size: .89rem;
+      margin-top: 1px;
+    }
+    .history-label {
+      color: #334155;
+      font-size: .95rem;
+      font-weight: 500;
+    }
+    .hist-btn-bar {
+      margin-bottom: .6rem;
+      text-align: right;
+    }
+    @media (max-width: 480px) {
+      .container { padding: 1.1rem .7rem 1.4rem; }
+      .history-title { font-size:1.03rem; }
+      .result, .history { padding: .8rem;}
+      button { font-size:.97rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌐 Power URL Shortener Hub</h1>
+    <div class="status-bar" id="statusBar" style="display:none;"></div>
+    <form id="urlForm" autocomplete="off">
+      <label for="longUrl">Long URL:</label>
+      <input type="url" id="longUrl" placeholder="Paste your long URL here" required>
+      <label for="service">Service:</label>
+      <select id="service">
+        <option value="tinyurl">TinyURL (alias supported)</option>
+        <option value="bitly">Bitly</option>
+        <option value="rebrandly">Rebrandly</option>
+        <option value="isgd">is.gd (alias supported, no API key)</option>
+        <option value="shrtco">shrtco.de (no key)</option>
+      </select>
+      <div class="custom-alias-field" id="customAliasField">
+        <label for="customAlias">Custom Alias:</label>
+        <input type="text" id="customAlias" maxlength="30" placeholder="Optional custom alias (when supported)">
+      </div>
+      <div class="api-token-field" id="bitlyTokenField">
+        <label for="bitlyToken">Bitly API Token:</label>
+        <input type="password" id="bitlyToken" placeholder="Paste Bitly API token here">
+      </div>
+      <div class="api-token-field" id="rebrandlyTokenField">
+        <label for="rebrandlyToken">Rebrandly API Key:</label>
+        <input type="password" id="rebrandlyToken" placeholder="Paste Rebrandly API key here">
+      </div>
+      <button type="submit">Shorten URL</button>
+    </form>
+    <div class="result" id="result" style="display:none;"></div>
+    <div class="error" id="error" style="display:none;"></div>
+    <div class="qr-section" id="qrSection" style="display:none;"></div>
+    <p style="font-size:0.91rem; color:#64748b; margin-top:2rem;">
+      <b>Bitly:</b> Get your API token at <a href="https://dev.bitly.com/" target="_blank">dev.bitly.com</a><br>
+      <b>Rebrandly:</b> Get your API key at <a href="https://developers.rebrandly.com/docs" target="_blank">rebrandly.com</a>
+    </p>
+  </div>
+  <div class="container history" id="historyPanel">
+    <div class="history-title">🕑 Shortened URLs History</div>
+    <div class="hist-btn-bar">
+      <input type="text" class="history-search" id="historySearch" placeholder="🔍 Filter by URL or service...">
+      <button type="button" class="clear-hist-btn" id="clearHistBtn">Clear All</button>
+    </div>
+    <ul class="history-list" id="historyList"></ul>
+  </div>
+  <!-- QRCode.js Library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script>
+    // UI Elements
+    const form = document.getElementById('urlForm');
+    const longUrlInput = document.getElementById('longUrl');
+    const serviceSelect = document.getElementById('service');
+    const customAliasField = document.getElementById('customAliasField');
+    const customAliasInput = document.getElementById('customAlias');
+    const resultDiv = document.getElementById('result');
+    const errorDiv = document.getElementById('error');
+    const bitlyTokenField = document.getElementById('bitlyTokenField');
+    const bitlyTokenInput = document.getElementById('bitlyToken');
+    const rebrandlyTokenField = document.getElementById('rebrandlyTokenField');
+    const rebrandlyTokenInput = document.getElementById('rebrandlyToken');
+    const qrSection = document.getElementById('qrSection');
+    const historyList = document.getElementById('historyList');
+    const statusBar = document.getElementById('statusBar');
+    const historySearch = document.getElementById('historySearch');
+    const clearHistBtn = document.getElementById('clearHistBtn');
+    let histCache = [];
+
+    // Show/hide API token or alias fields per service
+    function updateFields() {
+      let s = serviceSelect.value;
+      bitlyTokenField.style.display = (s === 'bitly') ? 'block' : 'none';
+      rebrandlyTokenField.style.display = (s === 'rebrandly') ? 'block' : 'none';
+      // Alias is supported for tinyurl, is.gd, rebrandly
+      if (['tinyurl','isgd','rebrandly'].includes(s)) {
+        customAliasField.style.display = 'block';
+        customAliasInput.placeholder = (s==='isgd')?'Optional custom alias (is.gd)':
+          (s==='rebrandly'?'Optional custom alias (Rebrandly)':'Optional custom alias (TinyURL)');
+      } else {
+        customAliasField.style.display = 'none';
+      }
+      customAliasInput.value = '';
+    }
+    serviceSelect.addEventListener('change', updateFields);
+    updateFields();
+
+    // Save/load history to localStorage
+    function saveToHistory(entry) {
+      let h = JSON.parse(localStorage.getItem('shortenerHistory') || "[]");
+      h.unshift(entry);
+      if (h.length > 20) h = h.slice(0, 20);
+      localStorage.setItem('shortenerHistory', JSON.stringify(h));
+      histCache = h;
+    }
+    function loadHistory(filter='') {
+      let h = histCache = JSON.parse(localStorage.getItem('shortenerHistory') || "[]");
+      if (filter) {
+        h = h.filter(item =>
+          item.shortUrl.toLowerCase().includes(filter) ||
+          item.longUrl.toLowerCase().includes(filter) ||
+          (item.alias||'').toLowerCase().includes(filter) ||
+          item.service.toLowerCase().includes(filter)
+        );
+      }
+      historyList.innerHTML = "";
+      if (h.length === 0) {
+        historyList.innerHTML = "<li style='color:#94a3b8;'>No history yet.</li>";
+        return;
+      }
+      h.forEach((item,i) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span class="history-label">${item.service.toUpperCase()}:</span>
+          <a href="${item.shortUrl}" target="_blank" class="history-link">${item.shortUrl}</a>
+          <button class="copy-btn" title="Copy short URL" onclick="navigator.clipboard.writeText('${item.shortUrl}')">Copy</button>
+          <button class="open-btn" title="Open in new tab" onclick="window.open('${item.shortUrl}','_blank')">Open</button>
+          <button class="del-btn" title="Delete this entry" onclick="deleteHistEntry(${i})">Del</button>
+          <span class="history-date">${new Date(item.date).toLocaleString()}</span>
+          <span style="font-size:.93rem; color:#64748b;">
+            Original: <span style="word-break:break-all;">${item.longUrl}</span>
+            <button class="copy-btn" title="Copy original URL" onclick="navigator.clipboard.writeText('${item.longUrl}')">Copy</button>
+          </span>
+          ${item.alias?'<span style="color:#0ea5e9;font-size:.95rem;">Alias: '+item.alias+'</span>':''}
+        `;
+        historyList.appendChild(li);
+      });
+    }
+    window.deleteHistEntry = function(idx) {
+      let h = histCache;
+      h.splice(idx,1);
+      localStorage.setItem('shortenerHistory', JSON.stringify(h));
+      loadHistory(historySearch.value.trim().toLowerCase());
+    }
+    historySearch.addEventListener('input',()=>{
+      loadHistory(historySearch.value.trim().toLowerCase());
+    });
+    clearHistBtn.addEventListener('click',()=>{
+      if(confirm('Clear all URL shortening history?')){
+        localStorage.removeItem('shortenerHistory');
+        loadHistory('');
+      }
+    });
+    loadHistory();
+
+    // QR generator
+    function showQR(url) {
+      qrSection.innerHTML = "";
+      qrSection.style.display = "block";
+      const qrcode = document.createElement('div');
+      qrSection.appendChild(qrcode);
+      new QRCode(qrcode, {
+        text: url,
+        width: 142,
+        height: 142,
+        colorDark: "#0f172a",
+        colorLight: "#f8fafc",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+      const cap = document.createElement('div');
+      cap.style = "font-size:.93rem;margin-top:.5rem;color:#64748b";
+      cap.textContent = "QR Code for the short URL";
+      qrSection.appendChild(cap);
+    }
+
+    function setStatus(msg) {
+      statusBar.innerText = msg;
+      statusBar.style.display = 'block';
+    }
+    function clearStatus() {
+      statusBar.style.display = 'none';
+    }
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      resultDiv.style.display = 'none';
+      errorDiv.style.display = 'none';
+      qrSection.style.display = 'none';
+      clearStatus();
+
+      let longUrl = longUrlInput.value.trim();
+      let service = serviceSelect.value;
+      let customAlias = customAliasInput.value.trim();
+
+      if (!longUrl.match(/^https?:\/\/.+/)) {
+        errorDiv.innerText = "Please enter a valid URL including http:// or https://";
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      let shortUrl = null, errMsg = null;
+      setStatus('Shortening URL, please wait...');
+
+      if (service === "tinyurl") {
+        let endpoint = "https://api.tinyurl.com/create";
+        let payload = { url: longUrl };
+        if (customAlias) payload.domain = "tinyurl.com", payload.alias = customAlias;
+
+        try {
+          let res = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "" // If you have an API key, put here.
+            },
+            body: JSON.stringify(payload)
+          });
+          let data = await res.json();
+          if (res.ok && data.data && data.data.tiny_url) {
+            shortUrl = data.data.tiny_url;
+          } else {
+            if (!customAlias) {
+              let legacyUrl = `https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`;
+              let resp = await fetch(legacyUrl);
+              let txt = await resp.text();
+              if (txt.startsWith('http')) shortUrl = txt;
+              else throw new Error("TinyURL fallback failed");
+            } else {
+              throw new Error(data.errors && data.errors[0] ? data.errors[0].message : "TinyURL error");
+            }
+          }
+        } catch (err) {
+          errMsg = "TinyURL error: " + (err.message || err);
+        }
+      }
+      else if (service === "bitly") {
+        let token = bitlyTokenInput.value.trim();
+        if (!token) {
+          errorDiv.innerText = "Please provide your Bitly API token.";
+          errorDiv.style.display = 'block';
+          clearStatus();
+          return;
+        }
+        try {
+          let payload = { long_url: longUrl };
+          let res = await fetch("https://api-ssl.bitly.com/v4/shorten", {
+            method: "POST",
+            headers: {
+              "Authorization": "Bearer " + token,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          });
+          let data = await res.json();
+          if (res.ok && data.link) {
+            shortUrl = data.link;
+          } else {
+            throw new Error(data.description || data.message || "Failed to shorten with Bitly");
+          }
+        } catch (err) {
+          errMsg = "Bitly error: " + (err.message || err);
+        }
+      }
+      else if (service === "rebrandly") {
+        let token = rebrandlyTokenInput.value.trim();
+        if (!token) {
+          errorDiv.innerText = "Please provide your Rebrandly API key.";
+          errorDiv.style.display = 'block';
+          clearStatus();
+          return;
+        }
+        try {
+          let payload = {
+            destination: longUrl,
+            domain: { fullName: "rebrand.ly" }
+          };
+          if (customAlias) payload.slashTag = customAlias;
+          let res = await fetch("https://api.rebrandly.com/v1/links", {
+            method: "POST",
+            headers: {
+              "apikey": token,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          });
+          let data = await res.json();
+          if (res.ok && data.shortUrl) {
+            shortUrl = "https://" + data.shortUrl;
+          } else {
+            throw new Error(data.message || (data.errors && data.errors[0] && data.errors[0].message) || "Failed to shorten with Rebrandly");
+          
+        } else {
+          throw new Error(data.message || (data.errors && data.errors[0] && data.errors[0].message) || "Failed to shorten with Rebrandly");
+        }
+      } catch (err) {
+        errMsg = "Rebrandly error: " + (err.message || err);
+      }
+    }
+    else if (service === "isgd") {
+      // https://is.gd/create.php?format=simple&url=...&shorturl=ALIAS
+      try {
+        let api = "https://is.gd/create.php?format=simple&url=" + encodeURIComponent(longUrl);
+        if (customAlias) api += "&shorturl=" + encodeURIComponent(customAlias);
+        let resp = await fetch(api);
+        let txt = await resp.text();
+        if (txt.startsWith('http')) shortUrl = txt;
+        else throw new Error(txt);
+      } catch (err) {
+        errMsg = "is.gd error: " + (err.message || err);
+      }
+    }
+    else if (service === "shrtco") {
+      // https://api.shrtco.de/v2/shorten?url=...
+      try {
+        let api = "https://api.shrtco.de/v2/shorten?url=" + encodeURIComponent(longUrl);
+        let resp = await fetch(api);
+        let data = await resp.json();
+        if (data && data.ok && data.result && data.result.full_short_link) {
+          shortUrl = data.result.full_short_link;
+        } else {
+          throw new Error(data.error || "shrtco.de failed");
+        }
+      } catch (err) {
+        errMsg = "shrtco.de error: " + (err.message || err);
+      }
+    }
+
+    clearStatus();
+
+    if (shortUrl) {
+      resultDiv.innerHTML = `
+        <b>Shortened URL:</b>
+        <a href="${shortUrl}" target="_blank">${shortUrl}</a>
+        <button class="copy-btn" title="Copy short URL" onclick="navigator.clipboard.writeText('${shortUrl}')">Copy</button>
+        <button class="open-btn" title="Open in new tab" onclick="window.open('${shortUrl}','_blank')">Open</button>
+        <br><span style="font-size:.98rem;color:#64748b;">
+          Original: <span style="word-break:break-all;">${longUrl}</span>
+          <button class="copy-btn" title="Copy original URL" onclick="navigator.clipboard.writeText('${longUrl}')">Copy</button>
+        </span>
+        ${customAlias?'<br><span style="color:#0ea5e9;font-size:.98rem;">Alias: '+customAlias+'</span>':''}
+      `;
+      resultDiv.style.display = 'block';
+      showQR(shortUrl);
+
+      // Add to history
+      saveToHistory({
+        service,
+        longUrl,
+        shortUrl,
+        date: new Date().toISOString(),
+        alias: customAlias || null
+      });
+      loadHistory(historySearch.value.trim().toLowerCase());
+    } else {
+      errorDiv.innerText = errMsg || "Could not shorten the URL. Try again later.";
+      errorDiv.style.display = 'block';
+    }
+  });
+</script>
+</body>
+</html>
