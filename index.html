@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>URL Shortener (TinyURL)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      background: #f8fafc;
+      font-family: 'Inter', Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #fff;
+      border-radius: 1.5rem;
+      box-shadow: 0 2px 16px #0001;
+      padding: 2rem 2.5rem 2.5rem;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 1.5rem;
+      font-size: 2rem;
+      color: #3b82f6;
+      letter-spacing: .5px;
+    }
+    input[type="url"] {
+      width: 100%;
+      padding: .75rem 1rem;
+      margin-bottom: 1.2rem;
+      border-radius: .75rem;
+      border: 1px solid #cbd5e1;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input[type="url"]:focus {
+      border-color: #3b82f6;
+    }
+    button {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      padding: .7rem 1.7rem;
+      border-radius: .75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 1px 8px #3b82f633;
+      transition: background .2s;
+    }
+    button:active {
+      background: #2563eb;
+    }
+    .result {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border-radius: 1rem;
+      background: #f1f5f9;
+      word-break: break-all;
+    }
+    .copy-btn {
+      margin-left: .5rem;
+      background: #06d6a0;
+      color: #fff;
+      border: none;
+      border-radius: .5rem;
+      padding: .35rem .9rem;
+      font-size: .95rem;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .copy-btn:active {
+      background: #029c6a;
+    }
+    .error {
+      color: #ef4444;
+      margin-top: 1rem;
+      font-size: 1.05rem;
+    }
+    @media (max-width: 480px) {
+      .container { padding: 1.2rem .7rem 1.7rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔗 URL Shortener</h1>
+    <form id="urlForm">
+      <input type="url" id="longUrl" placeholder="Paste your long URL here" required>
+      <br>
+      <button type="submit">Shorten URL</button>
+    </form>
+    <div class="result" id="result" style="display:none;"></div>
+    <div class="error" id="error" style="display:none;"></div>
+  </div>
+  <script>
+    const form = document.getElementById('urlForm');
+    const longUrlInput = document.getElementById('longUrl');
+    const resultDiv = document.getElementById('result');
+    const errorDiv = document.getElementById('error');
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      resultDiv.style.display = 'none';
+      errorDiv.style.display = 'none';
+      const longUrl = longUrlInput.value.trim();
+
+      if (!longUrl.match(/^https?:\/\/.+/)) {
+        errorDiv.innerText = "Please enter a valid URL including http:// or https://";
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      // TinyURL free public API endpoint
+      const apiUrl = `https://api.tinyurl.com/create?api_token=`;
+
+      try {
+        // Option 1: Using TinyURL public endpoint (no API key)
+        // But their new v4 API requires an API token (register at tinyurl.com)
+        // We'll use the legacy endpoint as workaround:
+        const legacyUrl = `https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`;
+        const response = await fetch(legacyUrl);
+        const shortUrl = await response.text();
+
+        if (!shortUrl.startsWith('http')) throw new Error('Failed to shorten URL');
+        
+        resultDiv.innerHTML = `
+          <b>Shortened URL:</b> <a href="${shortUrl}" target="_blank">${shortUrl}</a>
+          <button class="copy-btn" onclick="navigator.clipboard.writeText('${shortUrl}')">Copy</button>
+        `;
+        resultDiv.style.display = 'block';
+      } catch (err) {
+        errorDiv.innerText = "Error: Could not shorten the URL. Try again later.";
+        errorDiv.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>
