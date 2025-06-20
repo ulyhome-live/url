@@ -451,73 +451,69 @@
             shortUrl = "https://" + data.shortUrl;
           } else {
             throw new Error(data.message || (data.errors && data.errors[0] && data.errors[0].message) || "Failed to shorten with Rebrandly");
-                  } else {
-          throw new Error(data.message || (data.errors && data.errors[0] && data.errors[0].message) || "Failed to shorten with Rebrandly");
+          }
+        } catch (err) {
+          errMsg = "Rebrandly error: " + (err.message || err);
         }
-      } catch (err) {
-        errMsg = "Rebrandly error: " + (err.message || err);
       }
-    }
-    else if (service === "isgd") {
-      // https://is.gd/create.php?format=simple&url=...&shorturl=ALIAS
-      try {
-        let api = "https://is.gd/create.php?format=simple&url=" + encodeURIComponent(longUrl);
-        if (customAlias) api += "&shorturl=" + encodeURIComponent(customAlias);
-        let resp = await fetch(api);
-        let txt = await resp.text();
-        if (txt.startsWith('http')) shortUrl = txt;
-        else throw new Error(txt);
-      } catch (err) {
-        errMsg = "is.gd error: " + (err.message || err);
-      }
-    }
-    else if (service === "shrtco") {
-      // https://api.shrtco.de/v2/shorten?url=...
-      try {
-        let api = "https://api.shrtco.de/v2/shorten?url=" + encodeURIComponent(longUrl);
-        let resp = await fetch(api);
-        let data = await resp.json();
-        if (data && data.ok && data.result && data.result.full_short_link) {
-          shortUrl = data.result.full_short_link;
-        } else {
-          throw new Error(data.error || "shrtco.de failed");
+      else if (service === "isgd") {
+        try {
+          let api = "https://is.gd/create.php?format=simple&url=" + encodeURIComponent(longUrl);
+          if (customAlias) api += "&shorturl=" + encodeURIComponent(customAlias);
+          let resp = await fetch(api);
+          let txt = await resp.text();
+          if (txt.startsWith('http')) shortUrl = txt;
+          else throw new Error(txt);
+        } catch (err) {
+          errMsg = "is.gd error: " + (err.message || err);
         }
-      } catch (err) {
-        errMsg = "shrtco.de error: " + (err.message || err);
       }
-    }
+      else if (service === "shrtco") {
+        try {
+          let api = "https://api.shrtco.de/v2/shorten?url=" + encodeURIComponent(longUrl);
+          let resp = await fetch(api);
+          let data = await resp.json();
+          if (data && data.ok && data.result && data.result.full_short_link) {
+            shortUrl = data.result.full_short_link;
+          } else {
+            throw new Error(data.error || "shrtco.de failed");
+          }
+        } catch (err) {
+          errMsg = "shrtco.de error: " + (err.message || err);
+        }
+      }
 
-    clearStatus();
+      clearStatus();
 
-    if (shortUrl) {
-      resultDiv.innerHTML = `
-        <b>Shortened URL:</b>
-        <a href="${shortUrl}" target="_blank">${shortUrl}</a>
-        <button class="copy-btn" title="Copy short URL" onclick="navigator.clipboard.writeText('${shortUrl}')">Copy</button>
-        <button class="open-btn" title="Open in new tab" onclick="window.open('${shortUrl}','_blank')">Open</button>
-        <br><span style="font-size:.98rem;color:#64748b;">
-          Original: <span style="word-break:break-all;">${longUrl}</span>
-          <button class="copy-btn" title="Copy original URL" onclick="navigator.clipboard.writeText('${longUrl}')">Copy</button>
-        </span>
-        ${customAlias?'<br><span style="color:#0ea5e9;font-size:.98rem;">Alias: '+customAlias+'</span>':''}
-      `;
-      resultDiv.style.display = 'block';
-      showQR(shortUrl);
+      if (shortUrl) {
+        resultDiv.innerHTML = `
+          <b>Shortened URL:</b>
+          <a href="${shortUrl}" target="_blank">${shortUrl}</a>
+          <button class="copy-btn" title="Copy short URL" onclick="navigator.clipboard.writeText('${shortUrl}')">Copy</button>
+          <button class="open-btn" title="Open in new tab" onclick="window.open('${shortUrl}','_blank')">Open</button>
+          <br><span style="font-size:.98rem;color:#64748b;">
+            Original: <span style="word-break:break-all;">${longUrl}</span>
+            <button class="copy-btn" title="Copy original URL" onclick="navigator.clipboard.writeText('${longUrl}')">Copy</button>
+          </span>
+          ${customAlias?'<br><span style="color:#0ea5e9;font-size:.98rem;">Alias: '+customAlias+'</span>':''}
+        `;
+        resultDiv.style.display = 'block';
+        showQR(shortUrl);
 
-      // Add to history
-      saveToHistory({
-        service,
-        longUrl,
-        shortUrl,
-        date: new Date().toISOString(),
-        alias: customAlias || null
-      });
-      loadHistory(historySearch.value.trim().toLowerCase());
-    } else {
-      errorDiv.innerText = errMsg || "Could not shorten the URL. Try again later.";
-      errorDiv.style.display = 'block';
-    }
-  });
-</script>
+        // Add to history
+        saveToHistory({
+          service,
+          longUrl,
+          shortUrl,
+          date: new Date().toISOString(),
+          alias: customAlias || null
+        });
+        loadHistory(historySearch.value.trim().toLowerCase());
+      } else {
+        errorDiv.innerText = errMsg || "Could not shorten the URL. Try again later.";
+        errorDiv.style.display = 'block';
+      }
+    });
+  </script>
 </body>
 </html>
