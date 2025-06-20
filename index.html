@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Multi Shortener (TinyURL & Bitly)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      background: #f8fafc;
+      font-family: 'Inter', Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #fff;
+      border-radius: 1.5rem;
+      box-shadow: 0 2px 16px #0001;
+      padding: 2rem 2.5rem 2.5rem;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 1.5rem;
+      font-size: 2rem;
+      color: #3b82f6;
+      letter-spacing: .5px;
+    }
+    input[type="url"], input[type="password"], select {
+      width: 100%;
+      padding: .75rem 1rem;
+      margin-bottom: 1.2rem;
+      border-radius: .75rem;
+      border: 1px solid #cbd5e1;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input[type="url"]:focus, input[type="password"]:focus, select:focus {
+      border-color: #3b82f6;
+    }
+    label {
+      display: block;
+      text-align: left;
+      margin-bottom: .3rem;
+      color: #475569;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    button {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      padding: .7rem 1.7rem;
+      border-radius: .75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 1px 8px #3b82f633;
+      transition: background .2s;
+    }
+    button:active {
+      background: #2563eb;
+    }
+    .result {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border-radius: 1rem;
+      background: #f1f5f9;
+      word-break: break-all;
+    }
+    .copy-btn {
+      margin-left: .5rem;
+      background: #06d6a0;
+      color: #fff;
+      border: none;
+      border-radius: .5rem;
+      padding: .35rem .9rem;
+      font-size: .95rem;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .copy-btn:active {
+      background: #029c6a;
+    }
+    .error {
+      color: #ef4444;
+      margin-top: 1rem;
+      font-size: 1.05rem;
+    }
+    .api-token-field {
+      display: none;
+      margin-bottom: 1.2rem;
+    }
+    @media (max-width: 480px) {
+      .container { padding: 1.2rem .7rem 1.7rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔗 URL Shortener</h1>
+    <form id="urlForm">
+      <label for="longUrl">Long URL:</label>
+      <input type="url" id="longUrl" placeholder="Paste your long URL here" required>
+      <label for="service">Service:</label>
+      <select id="service">
+        <option value="tinyurl">TinyURL (no key needed)</option>
+        <option value="bitly">Bitly</option>
+      </select>
+      <div class="api-token-field" id="bitlyTokenField">
+        <label for="bitlyToken">Bitly API Token:</label>
+        <input type="password" id="bitlyToken" placeholder="Paste Bitly API token here">
+      </div>
+      <button type="submit">Shorten URL</button>
+    </form>
+    <div class="result" id="result" style="display:none;"></div>
+    <div class="error" id="error" style="display:none;"></div>
+    <p style="font-size:0.9rem; color:#64748b; margin-top:2.2rem;">
+      For Bitly, create a free API token at <a href="https://dev.bitly.com/" target="_blank">dev.bitly.com</a>
+    </p>
+  </div>
+  <script>
+    const form = document.getElementById('urlForm');
+    const longUrlInput = document.getElementById('longUrl');
+    const serviceSelect = document.getElementById('service');
+    const resultDiv = document.getElementById('result');
+    const errorDiv = document.getElementById('error');
+    const bitlyTokenField = document.getElementById('bitlyTokenField');
+    const bitlyTokenInput = document.getElementById('bitlyToken');
+
+    // Show/hide API token field if Bitly selected
+    serviceSelect.addEventListener('change', () => {
+      if (serviceSelect.value === 'bitly') {
+        bitlyTokenField.style.display = 'block';
+        bitlyTokenInput.required = true;
+      } else {
+        bitlyTokenField.style.display = 'none';
+        bitlyTokenInput.required = false;
+      }
+    });
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      resultDiv.style.display = 'none';
+      errorDiv.style.display = 'none';
+      const longUrl = longUrlInput.value.trim();
+      const service = serviceSelect.value;
+
+      if (!longUrl.match(/^https?:\/\/.+/)) {
+        errorDiv.innerText = "Please enter a valid URL including http:// or https://";
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      if (service === 'tinyurl') {
+        // Use TinyURL legacy endpoint (no API key)
+        const legacyUrl = `https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`;
+        try {
+          const response = await fetch(legacyUrl);
+          const shortUrl = await response.text();
+          if (!shortUrl.startsWith('http')) throw new Error('Failed to shorten URL');
+          resultDiv.innerHTML = `
+            <b>Shortened URL:</b> <a href="${shortUrl}" target="_blank">${shortUrl}</a>
+            <button class="copy-btn" onclick="navigator.clipboard.writeText('${shortUrl}')">Copy</button>
+          `;
+          resultDiv.style.display = 'block';
+        } catch (err) {
+          errorDiv.innerText = "Error: Could not shorten the URL with TinyURL. Try again later.";
+          errorDiv.style.display = 'block';
+        }
+      } else if (service === 'bitly') {
+        const bitlyToken = bitlyTokenInput.value.trim();
+        if (!bitlyToken) {
+          errorDiv.innerText = "Please provide your Bitly API token.";
+          errorDiv.style.display = 'block';
+          return;
+        }
+        try {
+          const response = await fetch("https://api-ssl.bitly.com/v4/shorten", {
+            method: "POST",
+            headers: {
+              "Authorization": "Bearer " + bitlyToken,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ long_url: longUrl })
+          });
+          const data = await response.json();
+          if (response.ok && data.link) {
+            resultDiv.innerHTML = `
+              <b>Shortened URL:</b> <a href="${data.link}" target="_blank">${data.link}</a>
+              <button class="copy-btn" onclick="navigator.clipboard.writeText('${data.link}')">Copy</button>
+            `;
+            resultDiv.style.display = 'block';
+          } else {
+            errorDiv.innerText = "Bitly error: " + (data.description || data.message || "Failed to shorten URL");
+            errorDiv.style.display = 'block';
+          }
+        } catch (err) {
+          errorDiv.innerText = "Error: Could not shorten the URL with Bitly. Try again later.";
+          errorDiv.style.display = 'block';
+        }
+      }
+    });
+  </script>
+</body>
+</html>
